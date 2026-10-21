@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        :root {
+            --text: #e9e9f2;
+            --muted: rgba(226, 226, 240, 0.55);
+            --accent: #6c5ce7;
+            --accent-2: #8b7dc4;
+            --glass-bg: rgba(255, 255, 255, 0.045);
+            --glass-border: rgba(255, 255, 255, 0.10);
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif;
+            background:
+                radial-gradient(60% 55% at 18% 12%, rgba(110, 96, 170, 0.25), transparent 60%),
+                radial-gradient(60% 55% at 85% 90%, rgba(70, 110, 140, 0.20), transparent 60%),
+                #0d0d14;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+        .profile-card {
+            position: relative;
+            width: 100%;
+            max-width: 440px;
+            padding: 30px 28px 26px;
+            border-radius: 24px;
+            background: var(--glass-bg);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+            backdrop-filter: blur(18px) saturate(140%);
+            border: 1px solid var(--glass-border);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+                0 16px 40px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+        .profile-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 40%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent);
+            pointer-events: none;
+        }
+        .header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+        .avatar {
+            flex: none;
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(180deg, rgba(124, 110, 210, 0.95), rgba(96, 84, 170, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.20),
+                0 8px 18px rgba(0, 0, 0, 0.30);
+        }
+        .profile-card h1 {
+            margin: 0 0 3px;
+            font-size: 20px;
+            font-weight: 650;
+            letter-spacing: 0.2px;
+            color: #fff;
+        }
+        .subtitle {
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .info {
+            position: relative;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 16px;
+            padding: 2px 16px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 13px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-row .label {
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .info-row .value {
+            font-weight: 600;
+            color: #fff;
+        }
+        .balance {
+            position: relative;
+            padding: 22px;
+            border-radius: 18px;
+            color: #fff;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(112, 96, 200, 0.90), rgba(92, 80, 168, 0.90));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                0 14px 32px rgba(0, 0, 0, 0.32);
+            margin-bottom: 22px;
+        }
+        .balance::after {
+            content: "";
+            position: absolute;
+            right: -30px;
+            top: -30px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .balance .label {
+            position: relative;
+            font-size: 12px;
+            opacity: 0.9;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+        .balance .amount {
+            position: relative;
+            font-size: 34px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .actions {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .actions button,
+        .actions a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            text-decoration: none;
+            padding: 13px 10px;
+            border-radius: 13px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            font-family: inherit;
+            transition: transform 0.12s ease, background 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .actions button:active,
+        .actions a:active {
+            transform: scale(0.97);
+        }
+        #history-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            color: var(--text);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+        #history-btn:hover {
+            background: rgba(255, 255, 255, 0.09);
+        }
+        .ai-link {
+            background: linear-gradient(180deg, rgba(112, 96, 200, 0.95), rgba(92, 80, 168, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.18),
+                0 8px 20px rgba(0, 0, 0, 0.30);
+        }
+        .ai-link:hover {
+            filter: brightness(1.06);
+        }
+        .admin-link {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding: 13px;
+            border-radius: 13px;
+            background: rgba(108, 92, 231, 0.12);
+            border: 1px solid rgba(150, 134, 220, 0.30);
+            color: #b9b0e6;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            transition: background 0.2s ease, transform 0.12s ease;
+        }
+        .admin-link:hover {
+            background: rgba(108, 92, 231, 0.20);
+        }
+        .admin-link:active {
+            transform: scale(0.97);
+        }
+        .logout {
+            position: relative;
+            display: block;
+            text-align: center;
+            margin-top: 22px;
+            color: var(--muted);
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .logout:hover {
+            color: #fff;
+        }
+        .icon {
+            width: 18px;
+            height: 18px;
+            flex: none;
+        }
+
+        /* ---------- МОДАЛЬНОЕ ОКНО ИСТОРИИ ТРАНЗАКЦИЙ ---------- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 8, 14, 0.75);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(22, 22, 34, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.active .modal-card {
+            transform: scale(1) translateY(0);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .modal-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .modal-title-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            background: rgba(108, 92, 231, 0.18);
+            border: 1px solid rgba(108, 92, 231, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #b9b0e6;
+        }
+        .modal-title-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 650;
+            color: #fff;
+        }
+        .modal-close {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            transition: background 0.15s, color 0.15s, transform 0.15s;
+        }
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            transform: scale(1.05);
+        }
+        .modal-content {
+            padding: 16px 20px 20px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+        .modal-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .modal-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.14);
+            border-radius: 6px;
+        }
+        .tx-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tx-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            transition: background 0.15s;
+        }
+        .tx-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .tx-info-block {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        .tx-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+        }
+        .tx-in .tx-icon {
+            background: rgba(46, 213, 115, 0.14);
+            color: #2ed573;
+            border: 1px solid rgba(46, 213, 115, 0.28);
+        }
+        .tx-out .tx-icon {
+            background: rgba(255, 71, 87, 0.14);
+            color: #ff6b81;
+            border: 1px solid rgba(255, 71, 87, 0.28);
+        }
+        .tx-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+        .tx-text {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+        .tx-desc {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tx-date {
+            font-size: 11.5px;
+            color: var(--muted);
+        }
+        .tx-values {
+            text-align: right;
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .tx-amount {
+            font-size: 14.5px;
+            font-weight: 700;
+        }
+        .tx-in .tx-amount {
+            color: #2ed573;
+        }
+        .tx-out .tx-amount {
+            color: #ff6b81;
+        }
+        .tx-balance {
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .tx-empty {
+            text-align: center;
+            padding: 36px 16px;
+            color: var(--muted);
+        }
+        .tx-empty svg {
+            width: 44px;
+            height: 44px;
+            margin-bottom: 10px;
+            opacity: 0.4;
+        }
+        .tx-empty p {
+            margin: 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="profile-card">
+    <div class="header">
+        <div class="avatar">{{ (user.username or '?')[0]|upper }}</div>
+        <div>
+            <h1>Личный кабинет</h1>
+            <div class="subtitle">{{ user.email }}</div>
+        </div>
+    </div>
+
+    <div class="info">
+        <div class="info-row">
+            <span class="label">Имя</span>
+            <span class="value">{{ user.username }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Фамилия</span>
+            <span class="value">{{ user.surname or '—' }}</span>
+        </div>
+    </div>
+
+    <div class="balance">
+        <div class="label">Баланс</div>
+        <div class="amount">{{ user.balance }} ₽</div>
+    </div>
+
+    {% if user.is_admin %}
+    <a class="admin-link" href="/admin">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        Админ-панель
+    </a>
+    {% endif %}
+
+    <div class="actions">
+        <button id="history-btn" type="button">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            История транзакций
+        </button>
+        <a class="ai-link" href="/ai">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Спросить ИИ
+        </a>
+    </div>
+
+    <a class="logout" href="/logout">Выйти из аккаунта</a>
+</div>
+
+<!-- Модальное окно истории транзакций -->
+<div id="transactions-modal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-title-wrap">
+                <div class="modal-title-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                </div>
+                <h3>История транзакций</h3>
+            </div>
+            <button class="modal-close" id="close-modal-btn" type="button" aria-label="Закрыть">&times;</button>
+        </div>
+        <div class="modal-content">
+            {% if transactions %}
+            <div class="tx-list">
+                {% for tx in transactions %}
+                <div class="tx-item {% if tx.amount >= 0 %}tx-in{% else %}tx-out{% endif %}">
+                    <div class="tx-info-block">
+                        <div class="tx-icon">
+                            {% if tx.amount >= 0 %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                            {% else %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                            {% endif %}
+                        </div>
+                        <div class="tx-text">
+                            <span class="tx-desc">{{ tx.description }}</span>
+                            <span class="tx-date">{{ tx.formatted_date }}</span>
+                        </div>
+                    </div>
+                    <div class="tx-values">
+                        <span class="tx-amount">{% if tx.amount > 0 %}+{% endif %}{{ tx.amount }} ₽</span>
+                        <span class="tx-balance">Остаток: {{ tx.balance_after }} ₽</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="tx-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+                <p>История операций пуста</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"
+        integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
