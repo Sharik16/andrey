@@ -554,7 +554,7 @@
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        <p>Перетащите изображение или аудио сюда</p>
+        <p>Перетащите изображение сюда</p>
     </div>
 
     <!-- Шапка чата -->
@@ -577,7 +577,7 @@
                         GigaChat AI
                         <span class="badge-model">Multimodal</span>
                     </h2>
-                    <div class="bot-sub">Текст, фото и аудио • {{ price }} ₽ / запрос</div>
+                    <div class="bot-sub">Текст и фото • {{ price }} ₽ / запрос</div>
                 </div>
             </div>
         </div>
@@ -629,7 +629,7 @@
                     </svg>
                 </div>
                 <h3>Добро пожаловать в GigaChat!</h3>
-                <p>Вы можете задать любой вопрос, прикрепить изображение для распознавания или отправить голосовую аудиозапись.</p>
+                <p>Вы можете задать любой вопрос или прикрепить изображение для распознавания.</p>
                 <div class="welcome-suggestions">
                     <button class="suggestion-btn" type="button" data-prompt="Расскажи короткую интересную историю">💡 «Расскажи короткую интересную историю»</button>
                     <button class="suggestion-btn" type="button" data-prompt="Помоги составить план тренировок на неделю">🏃‍♂️ «Помоги составить план тренировок на неделю»</button>
@@ -657,10 +657,10 @@
 
         <form id="chat-form">
             <!-- Скрытый инпут файла -->
-            <input type="file" id="chat-file-input" accept="image/*,audio/*" style="display: none;">
+            <input type="file" id="chat-file-input" accept="image/*" style="display: none;">
 
             <div class="chat-input-wrapper">
-                <button class="btn-attach" id="btn-attach" type="button" title="Прикрепить изображение или аудиофайл">
+                <button class="btn-attach" id="btn-attach" type="button" title="Прикрепить изображение">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 </button>
                 <textarea class="chat-textarea" id="chat-prompt" rows="1" placeholder="Напишите сообщение... (Enter — отправить, Shift+Enter — перенос строки)"></textarea>
@@ -669,7 +669,7 @@
                 </button>
             </div>
             <div class="chat-hint">
-                <span>Поддерживаются фото (PNG, JPG, WEBP) и аудио (MP3, WAV, OGG)</span>
+                <span>Поддерживаются фото (PNG, JPG, WEBP)</span>
                 <span>Каждый запрос: {{ price }} ₽</span>
             </div>
         </form>

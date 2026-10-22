@@ -191,25 +191,72 @@ $(document).ready(function () {
         }
     });
 
-    function handleSelectedFile(file) {
-        currentAttachedFile = file;
-        $('#preview-filename').text(file.name);
-        $('#chat-error-bar').hide();
+    const VISION_IMAGE_TYPES = ['image/png', 'image/jpeg'];
 
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                $('#preview-thumb').attr('src', e.target.result).show();
-                $('#preview-icon').hide();
+    // GigaChat принимает только PNG/JPEG — остальные картинки конвертируем в JPEG
+    function normalizeImageFile(file) {
+        return new Promise(function (resolve) {
+            if (!file.type.startsWith('image/') ||
+                VISION_IMAGE_TYPES.indexOf(file.type) !== -1) {
+                return resolve(file);
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+
+            img.onload = function () {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.getContext('2d').drawImage(img, 0, 0);
+                    canvas.toBlob(function (blob) {
+                        URL.revokeObjectURL(objectUrl);
+                        if (!blob) return resolve(file);
+                        const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+                        resolve(new File([blob], baseName + '.jpg', { type: 'image/jpeg' }));
+                    }, 'image/jpeg', 0.92);
+                } catch (e) {
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(file);
+                }
             };
-            reader.readAsDataURL(file);
-        } else {
-            $('#preview-thumb').hide();
-            $('#preview-icon').show();
+
+            img.onerror = function () {
+                URL.revokeObjectURL(objectUrl);
+                resolve(file);
+            };
+
+            img.src = objectUrl;
+        });
+    }
+
+    function handleSelectedFile(file) {
+        if (!file.type.startsWith('image/')) {
+            $('#chat-error-bar').text('Можно прикреплять только изображения').show();
+            return;
         }
 
-        $('#attachment-preview-bar').css('display', 'flex');
-        $textarea.focus();
+        normalizeImageFile(file).then(function (prepared) {
+            currentAttachedFile = prepared;
+            $('#preview-filename').text(prepared.name);
+            $('#chat-error-bar').hide();
+
+            if (prepared.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#preview-thumb').attr('src', e.target.result).show();
+                    $('#preview-icon').hide();
+                };
+                reader.readAsDataURL(prepared);
+            } else {
+                $('#preview-thumb').hide();
+                $('#preview-icon').show();
+            }
+
+            $('#attachment-preview-bar').css('display', 'flex');
+            $textarea.focus();
+        });
     }
 
     // Удаление прикреплённого файла
@@ -259,7 +306,7 @@ $(document).ready(function () {
                             </svg>
                         </div>
                         <h3>История очищена</h3>
-                        <p>Вы можете начать новый диалог, отправить текст, фото или аудиозапись.</p>
+                        <p>Вы можете начать новый диалог, отправить текст или фото.</p>
                         <div class="welcome-suggestions">
                             <button class="suggestion-btn" type="button" data-prompt="Расскажи короткую интересную историю">💡 «Расскажи короткую интересную историю»</button>
                             <button class="suggestion-btn" type="button" data-prompt="Помоги составить план тренировок на неделю">🏃‍♂️ «Помоги составить план тренировок на неделю»</button>
@@ -365,13 +412,7 @@ $(document).ready(function () {
         let fileUrl = null;
         if (currentAttachedFile) {
             fileUrl = URL.createObjectURL(currentAttachedFile);
-            if (currentAttachedFile.type.startsWith('image/')) {
-                fileType = 'image';
-            } else if (currentAttachedFile.type.startsWith('audio/')) {
-                fileType = 'audio';
-            } else {
-                fileType = 'file';
-            }
+            fileType = 'image';
         }
 
         const optimisticUserMsg = {

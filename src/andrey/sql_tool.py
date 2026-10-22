@@ -1,11 +1,16 @@
+import os
+
 import mysql.connector
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DB_CONFIG = {
-    "host": "185.114.247.43",
-    "port": 3306,
-    "database": "sch688_vvedenie",
-    "user": "sch688_vvedenie",
-    "password": "Qwerty123",
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("DB_PORT", "3306")),
+    "database": os.getenv("DB_NAME", "sch688_vvedenie"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
 }
 
 
@@ -84,16 +89,6 @@ def revoke_admin(email):
 #  ГЛАВНЫЙ БЛОК — тут меняйте, что именно сделать
 # ============================================================
 if __name__ == "__main__":
-    run_sql(
-    "CREATE TABLE IF NOT EXISTS settings ("
-    "  `key` VARCHAR(50) PRIMARY KEY,"
-    "  `value` VARCHAR(255) NOT NULL"
-    ")", fetch=False)
-    # run_sql(
-    # "INSERT INTO settings (`key`, `value`) VALUES ('ai_price', '3') "
-    # "ON DUPLICATE KEY UPDATE `value` = `value`", fetch=False)
-    # print("Таблица settings готова")
-
     print("=== Шаг 1. Проверяю / создаю колонку is_admin ===")
     add_column_if_missing("users", "is_admin",
                           "TINYINT(1) NOT NULL DEFAULT 0")

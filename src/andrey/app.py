@@ -8,6 +8,10 @@ import hashlib
 import hmac
 import secrets
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 try:
     from .gigachat_service import ask_gigachat
 except ImportError:
@@ -17,15 +21,19 @@ app = Flask(__name__)
 app.secret_key = "change-me-to-a-random-long-string"
 
 DB_CONFIG = {
-    "host": "127.0.0.1",
-    "port": 3306,
-    "database": "sch688_vvedenie",
-    "user": "root",
-    "password": "",
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("DB_PORT", "3306")),
+    "database": os.getenv("DB_NAME", "sch688_vvedenie"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
     "autocommit": True,
 }
 
 DEFAULT_AI_PRICE = 3
+
+# Ограничения для изображений, которые принимает GigaChat
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+SUPPORTED_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg")
 
 # ---------- Хеширование паролей (pbkdf2, без префиксов) ----------
 PBKDF2_ITERATIONS = 600_000
@@ -281,7 +289,7 @@ def user_login():
     cnx = get_db()
     cur = cnx.cursor(dictionary=True)
     cur.execute(
-        "SELECT id, username, password_hash, is_admin "
+        "SELECT id, password_hash "
         "FROM users WHERE email = %s",
         (email,)
     )
@@ -292,13 +300,10 @@ def user_login():
         return jsonify({"status": "error",
                         "message": "Неверный email или пароль"}), 401
 
-    session["user_id"]  = user["id"]
-    session["username"] = user["username"]
-    session["is_admin"] = bool(user["is_admin"])   # удобно для шаблонов
+    session["user_id"] = user["id"]
 
     # После входа всегда ведём в личный кабинет
-    redirect_to = "/profile"
-    return jsonify({"status": "ok", "redirect": redirect_to})
+    return jsonify({"status": "ok", "redirect": "/profile"})
 
 
 @app.route("/logout")
@@ -338,12 +343,28 @@ def ai_request():
                 file_name = orig_name
                 mime_type = file.mimetype or "application/octet-stream"
 
-                if ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]:
-                    file_type = "image"
-                elif ext in [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".weba"]:
-                    file_type = "audio"
-                else:
-                    file_type = "file"
+                if ext not in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp",
+                               ".avif", ".heic", ".heif"]:
+                    os.remove(save_path)
+                    return jsonify({
+                        "status": "error",
+                        "message": "Можно прикреплять только изображения"
+                    }), 400
+
+                file_type = "image"
+
+                if ext not in SUPPORTED_IMAGE_EXTENSIONS:
+                    os.remove(save_path)
+                    return jsonify({
+                        "status": "error",
+                        "message": "GigaChat принимает изображения только в форматах PNG и JPEG"
+                    }), 400
+                if os.path.getsize(save_path) > MAX_IMAGE_BYTES:
+                    os.remove(save_path)
+                    return jsonify({
+                        "status": "error",
+                        "message": "Изображение слишком большое. Максимальный размер — 10 МБ"
+                    }), 400
 
     if not prompt and not file_path:
         return jsonify({"status": "error", "message": "Введите сообщение или прикрепите файл"}), 400
@@ -403,8 +424,6 @@ def ai_request():
         tx_desc = "Запрос к нейросети"
         if file_type == "image":
             tx_desc = "Запрос к нейросети (фото)"
-        elif file_type == "audio":
-            tx_desc = "Запрос к нейросети (аудио)"
 
         cur.execute(
             "INSERT INTO transactions (user_id, amount, type, description, balance_after) "
@@ -458,35 +477,44 @@ def ai_request():
 # ==============           АДМИНКА           ===============
 # ==========================================================
 
+def _admin_stats(cur):
+    """Актуальные счётчики для карточек на странице админки."""
+    cur.execute("SELECT COUNT(*) FROM users")
+    total_users = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM users WHERE is_admin = 1")
+    total_admins = cur.fetchone()[0]
+    cur.execute("SELECT COALESCE(SUM(balance), 0) FROM users")
+    total_balance = cur.fetchone()[0]
+    return {
+        "total_users": int(total_users),
+        "total_admins": int(total_admins),
+        "total_balance": int(total_balance or 0),
+    }
+
+
 @app.route("/admin")
 @admin_required
 def admin_page():
     cnx = get_db()
     cur = cnx.cursor(dictionary=True)
     cur.execute(
-        "SELECT id, username, surname, email, balance, is_admin, created_at "
+        "SELECT id, username, surname, email, balance, is_admin "
         "FROM users ORDER BY id ASC"
     )
     users = cur.fetchall()
 
-    cur.execute("SELECT COUNT(*) AS c FROM users")
-    total_users = cur.fetchone()["c"]
-
-    cur.execute("SELECT COALESCE(SUM(balance),0) AS s FROM users")
-    total_balance = cur.fetchone()["s"]
-
-    cur.execute("SELECT COUNT(*) AS c FROM users WHERE is_admin = 1")
-    total_admins = cur.fetchone()["c"]
-
+    stats_cur = cnx.cursor()
+    stats = _admin_stats(stats_cur)
+    stats_cur.close()
     cur.close(); cnx.close()
 
     return render_template(
         "admin.html",
         users=users,
-        total_users=total_users,
-        total_balance=total_balance,
-        total_admins=total_admins,
-        ai_price=get_ai_price(),   # ← NEW
+        total_users=stats["total_users"],
+        total_balance=stats["total_balance"],
+        total_admins=stats["total_admins"],
+        ai_price=get_ai_price(),
     )
 
 @app.route("/admin/settings/ai_price", methods=["POST"])
@@ -541,9 +569,10 @@ def admin_set_balance(user_id):
         (user_id, delta, "admin_adjustment", "Корректировка администратором", new_balance)
     )
     cnx.commit()
+    stats = _admin_stats(cur)
     cur.close(); cnx.close()
 
-    return jsonify({"status": "ok", "balance": new_balance})
+    return jsonify({"status": "ok", "balance": new_balance, "stats": stats})
 
 
 @app.route("/admin/user/<int:user_id>/toggle_admin", methods=["POST"])
@@ -566,9 +595,12 @@ def admin_toggle_admin(user_id):
     cur.execute("UPDATE users SET is_admin = %s WHERE id = %s",
                 (new_flag, user_id))
     cnx.commit()
+    stats_cur = cnx.cursor()
+    stats = _admin_stats(stats_cur)
+    stats_cur.close()
     cur.close(); cnx.close()
 
-    return jsonify({"status": "ok", "is_admin": new_flag})
+    return jsonify({"status": "ok", "is_admin": new_flag, "stats": stats})
 
 
 @app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
@@ -583,13 +615,16 @@ def admin_delete_user(user_id):
     cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
     cnx.commit()
     affected = cur.rowcount
-    cur.close(); cnx.close()
 
     if affected == 0:
+        cur.close(); cnx.close()
         return jsonify({"status": "error",
                         "message": "Пользователь не найден"}), 404
 
-    return jsonify({"status": "ok"})
+    stats = _admin_stats(cur)
+    cur.close(); cnx.close()
+
+    return jsonify({"status": "ok", "stats": stats})
 
 
 # ---------- 403 страница ----------

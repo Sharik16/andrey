@@ -1,7 +1,7 @@
 $(document).ready(function () {
 
     function postJSON(url, data, onSuccess, onError) {
-        $.ajax({
+        return $.ajax({
             url: url,
             method: 'POST',
             contentType: 'application/json',
@@ -14,6 +14,14 @@ $(document).ready(function () {
             alert(msg);
             onError && onError(xhr);
         });
+    }
+
+    // Обновление карточек статистики
+    function updateStats(stats) {
+        if (!stats) return;
+        $('#stat-users').text(stats.total_users);
+        $('#stat-admins').text(stats.total_admins);
+        $('#stat-balance').text(stats.total_balance + ' ₽');
     }
 
     // --- Сохранить баланс ---
@@ -30,6 +38,7 @@ $(document).ready(function () {
         postJSON(`/admin/user/${id}/balance`, { balance: value }, function (res) {
             $row.find('[data-balance-input]').val(res.balance);
             flashRow($row, '#d4edda');
+            updateStats(res.stats);
         });
     });
 
@@ -47,7 +56,7 @@ $(document).ready(function () {
                   .toggleClass('admin', isAdmin)
                   .toggleClass('user', !isAdmin);
             $btn.text(isAdmin ? 'Разжаловать' : 'Назначить админом');
-            flashRow($row, '#fff3cd');
+            updateStats(res.stats);
         })
         .always(function () {
             $btn.prop('disabled', false);
@@ -63,7 +72,8 @@ $(document).ready(function () {
         if (!confirm(`Удалить пользователя "${name}" (id=${id})? Действие необратимо.`))
             return;
 
-        postJSON(`/admin/user/${id}/delete`, {}, function () {
+        postJSON(`/admin/user/${id}/delete`, {}, function (res) {
+            updateStats(res.stats);
             $row.fadeOut(250, function () { $(this).remove(); });
         });
     });
